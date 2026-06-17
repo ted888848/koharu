@@ -219,6 +219,22 @@ const OPENAI_MODELS: &[ProviderModelDescriptor] = &[
 
 const GEMINI_MODELS: &[ProviderModelDescriptor] = &[
     ProviderModelDescriptor {
+        id: "gemini-flash-lite-latest",
+        name: "Gemini Flash-Lite Latest",
+    },
+    ProviderModelDescriptor {
+        id: "gemini-flash-latest",
+        name: "Gemini Flash Latest",
+    },
+    ProviderModelDescriptor {
+        id: "gemini-pro-latest",
+        name: "Gemini Pro Latest",
+    },
+    ProviderModelDescriptor {
+        id: "gemini-3.5-flash",
+        name: "Gemini 3.5 Flash",
+    },
+    ProviderModelDescriptor {
         id: "gemini-3.1-pro-preview",
         name: "Gemini 3.1 Pro Preview",
     },
@@ -616,7 +632,7 @@ mod tests {
             &[
                 "gemini-3.1-pro-preview",
                 "gemini-3.1-flash-lite",
-                "gemini-2.5-flash",
+                "gemini-3.5-flash",
                 "gemma-4-26b-a4b-it",
             ],
         );

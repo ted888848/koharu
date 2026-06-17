@@ -297,6 +297,14 @@ On Windows, you can install Koharu with [winget](https://learn.microsoft.com/en-
 winget install koharu
 ```
 
+### Homebrew
+
+On macOS, you can install Koharu with [Homebrew](https://brew.sh/):
+
+```bash
+brew install --cask koharu
+```
+
 ### Docker
 
 Koharu also publishes official Docker images for headless use. You can pull the latest image from GitHub Container Registry:
@@ -320,6 +328,15 @@ Koharu provides a diagnostic mode that outputs detailed logs and system informat
 koharu --debug
 # Windows
 koharu.exe --debug
+```
+
+You can also set the `RUST_LOG` environment variable to `debug` or `trace` to see more verbose logs:
+
+```bash
+# macOS / Linux
+RUST_LOG=debug koharu
+# Windows (PowerShell)
+$env:RUST_LOG="debug"; koharu.exe
 ```
 
 ## Development

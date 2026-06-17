@@ -17,7 +17,7 @@ default-members = ["koharu"]
 resolver = "3"
 
 [workspace.package]
-version = "0.61.1"
+version = "0.61.2"
 edition = "2024"
 description = "Manga translation tools"
 license = "GPL-3.0-only"
@@ -126,8 +126,8 @@ windows = { version = "0.62", features = [
 ] }
 windows-sys = "0.61"
 winreg = "0.56"
-skrifa = "0.42"
-harfrust = "0.8"
+skrifa = "0.43"
+harfrust = "0.9"
 hypher = "0.1.7"
 icu_properties = "2.2"
 icu_segmenter = "2.2"
@@ -157,7 +157,7 @@ walkdir = "2.5"
 proptest = "1.6"
 insta = "1.41"
 base64 = "0.22"
-tower-http = { version = "0.6", features = ["cors"] }
+tower-http = { version = "0.7", features = ["cors"] }
 unicode-bidi = "0.3"
 criterion = { version = "0.8", features = ["html_reports"] }
 git-version = "0.3"
