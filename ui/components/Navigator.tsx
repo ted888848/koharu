@@ -2,7 +2,7 @@
 
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { LayoutGridIcon, Trash2Icon } from 'lucide-react'
-import { memo, useCallback, useMemo, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react'
 import type React from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -76,6 +76,37 @@ export function Navigator() {
     },
     [pages, pageId, setPage, setSelectedPageIds],
   )
+
+  const handleKeyDown = useEffectEvent((e: KeyboardEvent) => {
+    if (e.key === 'PageDown' || e.key === 'PageUp') {
+      e.preventDefault()
+      const nextPageId = () => {
+        if (e.key === 'PageDown') {
+          return pages[Math.min(currentIndex + 1, pages.length - 1)]?.id
+        } else {
+          return pages[Math.max(currentIndex - 1, 0)]?.id
+        }
+      }
+      const id = nextPageId()
+      if (id) {
+        setSelectedPageIds(new Set([id]))
+        setPage(id)
+
+        document.querySelector(`img[src*="${id}"]`)?.scrollIntoView({
+          behavior: 'instant',
+          block: 'center',
+        })
+
+      }
+    }
+  })
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [handleKeyDown])
 
   const handleDeletePages = useCallback(
     async (idsToDelete: Set<string>) => {
@@ -257,7 +288,7 @@ const PagePreview = memo(function PagePreview({
       data-page-index={index}
       data-selected={selected}
       data-active={active}
-      className='group relative flex h-full w-full cursor-pointer flex-col gap-0.5 rounded border border-transparent bg-card p-1.5 text-left shadow-sm transition select-none hover:bg-accent/40 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-hidden data-[active=true]:border-primary data-[selected=true]:bg-accent/60'
+      className='group relative flex h-full w-full cursor-pointer flex-col gap-0.5 rounded border border-transparent bg-card p-1.5 text-left shadow-sm transition select-none hover:bg-accent/40 focus-visible:outline-hidden data-[active=true]:border-primary data-[selected=true]:bg-accent/60'
     >
       <div className='relative flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded bg-muted/20'>
         {src ? (

@@ -17,6 +17,7 @@ import { findImageBlob, findMaskBlob, useCurrentPage, useTextNodes } from '@/hoo
 import { useScene } from '@/hooks/useScene'
 import { useEditorUiStore } from '@/lib/stores/editorUiStore'
 import { cn } from '@/lib/utils'
+import { useEffect } from 'react'
 
 type Layer = {
   id: string
@@ -48,6 +49,12 @@ export function LayersPanel() {
   const hasSource = !!(page && findImageBlob(page, 'source'))
   const hasSegment = !!(page && findMaskBlob(page, 'segment'))
   const hasBrush = !!(page && findMaskBlob(page, 'brushInpaint'))
+
+  useEffect(() => {
+    if (showRenderedImage) return;
+    if (page && hasRendered) setShowRenderedImage(true)
+  }, [page, hasRendered, showRenderedImage])
+
   // Silence warning about unused epoch dep — it's the invalidation trigger.
   void sceneEpoch
 
@@ -97,7 +104,7 @@ export function LayersPanel() {
       labelKey: 'layers.base',
       icon: 'RAW',
       visible: true,
-      setVisible: () => {},
+      setVisible: () => { },
       hasContent: hasSource,
       alwaysEnabled: true,
     },

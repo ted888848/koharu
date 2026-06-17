@@ -288,12 +288,12 @@ function LlmStatusPopover() {
     }
   }
 
-  const isInitialLoad = useRef(false)
+  const [isInitialLoad, setIsInitialLoad] = useState(false)
   useEffect(() => {
-    if (isInitialLoad.current) return
-    isInitialLoad.current = true
+    if (isInitialLoad || sameLlmTarget(llmState?.target, selectedTarget)) return
+    setIsInitialLoad(true)
     handleToggleLoadUnload()
-  }, [selectedIsLoaded])
+  }, [llmState, selectedTarget])
 
   useEffect(() => {
     if (llmModels.length === 0) return
