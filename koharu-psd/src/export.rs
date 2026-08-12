@@ -253,7 +253,7 @@ fn text_layer(
             let orientation = infer_orientation(block);
             let justification = infer_justification(block, trimmed, orientation);
             let font_index = block.font_index.unwrap_or(0);
-            let font_size = infer_font_size(block);
+            let font_size = infer_font_size(block) * 1.8;
             let color = infer_color(block);
             let faux_bold = block
                 .style

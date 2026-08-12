@@ -403,7 +403,7 @@ fn paragraph_properties(justification: TextJustification) -> Vec<(String, Engine
 fn base_style_sheet(font_index: i32) -> Vec<(String, EngineValue)> {
     vec![
         ("Font".to_string(), EngineValue::Int(font_index)),
-        ("FontSize".to_string(), EngineValue::Float(12.0)),
+        ("FontSize".to_string(), EngineValue::Float(16.0)),
         ("FauxBold".to_string(), EngineValue::Bool(false)),
         ("FauxItalic".to_string(), EngineValue::Bool(false)),
         ("AutoLeading".to_string(), EngineValue::Bool(true)),

@@ -17,7 +17,7 @@ import { findImageBlob, findMaskBlob, useCurrentPage, useTextNodes } from '@/hoo
 import { useScene } from '@/hooks/useScene'
 import { useEditorUiStore } from '@/lib/stores/editorUiStore'
 import { cn } from '@/lib/utils'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
 type Layer = {
   id: string
@@ -49,10 +49,13 @@ export function LayersPanel() {
   const hasSource = !!(page && findImageBlob(page, 'source'))
   const hasSegment = !!(page && findMaskBlob(page, 'segment'))
   const hasBrush = !!(page && findMaskBlob(page, 'brushInpaint'))
-
+  const [isSetShowRenderedImage, setIsSetShowRenderedImage] = useState(false)
   useEffect(() => {
-    if (showRenderedImage) return;
-    if (page && hasRendered) setShowRenderedImage(true)
+    if (showRenderedImage || isSetShowRenderedImage) return;
+    if (page && hasRendered) {
+      setShowRenderedImage(true)
+      setIsSetShowRenderedImage(true)
+    }
   }, [page, hasRendered, showRenderedImage])
 
   // Silence warning about unused epoch dep — it's the invalidation trigger.

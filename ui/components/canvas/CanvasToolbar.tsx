@@ -291,8 +291,10 @@ function LlmStatusPopover() {
   const [isInitialLoad, setIsInitialLoad] = useState(false)
   useEffect(() => {
     if (isInitialLoad || sameLlmTarget(llmState?.target, selectedTarget)) return
-    setIsInitialLoad(true)
-    handleToggleLoadUnload()
+    setTimeout(() => {
+      setIsInitialLoad(true)
+      handleToggleLoadUnload()
+    }, 250)
   }, [llmState, selectedTarget])
 
   useEffect(() => {
@@ -319,7 +321,6 @@ function LlmStatusPopover() {
   }, [llmModels, llmSelectedLanguage, selectedModel?.model, selectedTarget])
 
   const indicatorBusy = busy || llmLoading
-
   return (
     <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
       <PopoverTrigger asChild>

@@ -27,6 +27,6 @@ USER koharu
 WORKDIR /home/koharu
 
 VOLUME ["/home/koharu/.local/share/Koharu"]
-EXPOSE 4000
+EXPOSE 8067
 
-CMD ["/usr/local/bin/koharu", "--headless", "--host", "0.0.0.0", "--port", "4000"]
+CMD ["/usr/local/bin/koharu", "--headless", "--host", "0.0.0.0", "--port", "8067"]

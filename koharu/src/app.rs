@@ -92,7 +92,7 @@ pub async fn run() -> Result<()> {
     crate::windows::register_khr().ok();
 
     let bind_host = cli.host.as_deref().unwrap_or("127.0.0.1");
-    let bind_port = cli.port.unwrap_or(4000);
+    let bind_port = cli.port.unwrap_or(8067);
     let listener: TcpListener = if cfg!(debug_assertions) || cli.port.is_some() {
         TcpListener::bind((bind_host, bind_port)).await?
     } else {
