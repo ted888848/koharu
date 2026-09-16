@@ -1,3 +1,20 @@
+## [0.83.3](https://github.com/koharu-rs/koharu/compare/0.83.2..0.83.3) - 2026-09-16
+
+### 🐛 Bug Fixes
+
+- *(desktop)* Force X11 ozone platform for Linux CEF ([#1110](https://github.com/koharu-rs/koharu/issues/1110)) - ([c1e9d23](https://github.com/koharu-rs/koharu/commit/c1e9d23e25e6568f53b827a82a91994467adede9))
+
+
+## [0.83.2](https://github.com/koharu-rs/koharu/compare/0.83.1..0.83.2) - 2026-09-15
+
+### 🐛 Bug Fixes
+
+- *(app)* Skip Windows store configuration in debug builds - ([3cb9791](https://github.com/koharu-rs/koharu/commit/3cb979116485d9a7deb59ee54f0fae6b48bb4274))
+- *(canvas)* Preserve authored text rotation - ([6d53328](https://github.com/koharu-rs/koharu/commit/6d5332817c96e493b14c6d6915881e078d968ea9))
+- *(renderer)* Preserve joined balloon text placement - ([b5f3c41](https://github.com/koharu-rs/koharu/commit/b5f3c41c589431a34c9c148074a057f7c176746f))
+- *(translator)* Cache model-listing client with five-second timeout ([#1103](https://github.com/koharu-rs/koharu/issues/1103)) - ([bc1a51b](https://github.com/koharu-rs/koharu/commit/bc1a51b67e50612a8dcbe00827ce22746c988d11))
+
+
 ## [0.83.1](https://github.com/koharu-rs/koharu/compare/0.83.0..0.83.1) - 2026-09-15
 
 ### 🐛 Bug Fixes
