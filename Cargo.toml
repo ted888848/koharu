@@ -173,6 +173,11 @@ syn = { version = "3.0.5", features = ["full"] }
 libc = "0.2.189"
 memmap2 = "0.9.11"
 
+[patch.crates-io]
+# CEF creates top-level windows on Winit's thread and stores its own GWL_USERDATA.
+# Keep Winit from interpreting those pointers as WindowData while moving the app window.
+winit-win32 = { path = "crates/winit-win32" }
+
 [profile.dev]
 debug = 1
 

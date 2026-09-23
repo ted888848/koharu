@@ -1890,6 +1890,9 @@ name = "cursor-icon"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f27ae1dd37df86211c42e150270f82743308803d90a6f6e6651cd730d5e1732f"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "daachorse"
@@ -11614,6 +11617,7 @@ dependencies = [
  "dpi",
  "keyboard-types",
  "raw-window-handle",
+ "serde",
  "smol_str",
  "url",
  "web-time",
@@ -11683,13 +11687,12 @@ dependencies = [
 [[package]]
 name = "winit-win32"
 version = "0.31.0-beta.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "25fb480c41df01d351f656cbf3ad74013f8a9d22bb5b2dcab59f9167e7a0b6ec"
 dependencies = [
  "bitflags 2.13.1",
  "cursor-icon",
  "dpi",
  "raw-window-handle",
+ "serde",
  "smol_str",
  "tracing",
  "unicode-segmentation",
