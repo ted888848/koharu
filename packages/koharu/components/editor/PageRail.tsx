@@ -164,6 +164,25 @@ export function PageRail() {
     }
   }
 
+  useEffect(() => {
+    const down = (event: KeyboardEvent) => {
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+        return
+      }
+      if (event.key !== 'PageUp' && event.key !== 'PageDown') return
+      const index = pages.findIndex((page) => page.id === active)
+      if (index < 0) return
+      const next = index + (event.key === 'PageUp' ? -1 : 1)
+      if (next < 0 || next >= pages.length) return
+      event.preventDefault()
+      const visibleIndex = visiblePages.findIndex(({ page }) => page.id === pages[next]?.id)
+      if (visibleIndex >= 0) pageVirtualizer.scrollToIndex(visibleIndex, { align: 'auto' })
+      select(next, false, false)
+    }
+    window.addEventListener('keydown', down)
+    return () => window.removeEventListener('keydown', down)
+  }, [active, pageVirtualizer, pages, select, visiblePages])
+
   const prefetchOnIntent = (page: string) => {
     const project = queryClient.getQueryData<ProjectInfo | null>(projectKey)
     if (!project || project.active_page === page) return

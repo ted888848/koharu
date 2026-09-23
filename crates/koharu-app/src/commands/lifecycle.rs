@@ -1,6 +1,6 @@
 use anyhow::{Context as _, Result};
 use koharu_desktop::{CanvasState, Desktop};
-use koharu_scene::{AssetInput, AssetMetadata, AssetRole, At, PageDraft};
+use koharu_scene::{AssetInput, AssetMetadata, AssetRole, At, PageDraft, RemovePolicy};
 use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 use specta::Type;
@@ -414,6 +414,7 @@ pub(crate) async fn import(
     if files.is_empty() {
         return Err(anyhow::anyhow!("no supported images were found in the selection").into());
     }
+    let replace_pages = matches!(source, PageImportSource::Folder);
     let pages = tokio_rayon::spawn(move || import::import(files)).await?;
     let page_count = pages.len();
 
@@ -421,7 +422,18 @@ pub(crate) async fn import(
         let mut project = project.project.lock().await;
         let project = project.as_mut().context("no project is open")?;
         let source = AssetRole::new("source")?;
-        let patch = project.snapshot().patch(|edit| {
+        let snapshot = project.snapshot();
+        let existing_pages = if replace_pages {
+            snapshot.pages().map(|page| page.id()).collect::<Vec<_>>()
+        } else {
+            Vec::new()
+        };
+        let patch = snapshot.patch(|edit| {
+            if replace_pages {
+                for page in existing_pages {
+                    edit.remove_entity(page, RemovePolicy::Cascade)?;
+                }
+            }
             for imported in pages {
                 let page = edit.add_page(
                     PageDraft::new(
