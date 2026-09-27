@@ -114,12 +114,12 @@ pub fn run(context: tauri::Context<CefRuntime>) -> Result<()> {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(crate::commands::bindings().invoke_handler())
         .setup(move |application| {
-            #[cfg(all(target_os = "windows", not(debug_assertions)))]
+            #[cfg(target_os = "windows")]
             koharu_runtime::Store::configure(
                 application
                     .path()
-                    .resource_dir()
-                    .context("failed to locate Koharu's installation directory")?
+                    .app_local_data_dir()
+                    .context("failed to locate Koharu's local data directory")?
                     .join("store"),
             )?;
 
