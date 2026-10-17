@@ -22,6 +22,14 @@ pub(crate) struct StageInput {
     region: Option<Bounds>,
     images: Arc<ImageCache>,
     inpainting_mask: Option<InpaintingMask>,
+    translation_pages: Vec<TranslationPage>,
+}
+
+#[derive(Clone)]
+pub(crate) struct TranslationPage {
+    pub(crate) page: EntityId,
+    pub(crate) region: Option<Bounds>,
+    pub(crate) images: Arc<ImageCache>,
 }
 
 impl StageInput {
@@ -40,7 +48,13 @@ impl StageInput {
             region,
             images,
             inpainting_mask,
+            translation_pages: Vec::new(),
         }
+    }
+
+    pub(crate) fn with_translation_pages(mut self, pages: Vec<TranslationPage>) -> Self {
+        self.translation_pages = pages;
+        self
     }
 
     pub(crate) fn page(&self) -> EntityId {
@@ -55,6 +69,19 @@ impl StageInput {
             self.region,
             entity,
         )
+    }
+
+    pub(crate) fn translation_pages(&self) -> &[TranslationPage] {
+        &self.translation_pages
+    }
+
+    pub(crate) fn contains_on_page(
+        &self,
+        page: EntityId,
+        region: Option<Bounds>,
+        entity: EntityId,
+    ) -> Result<bool> {
+        crate::scope::contains_entity(&self.scene, page, self.entities.as_deref(), region, entity)
     }
 }
 

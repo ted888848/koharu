@@ -35,11 +35,15 @@ impl StageRunner {
     #[tracing::instrument(skip_all)]
     pub(crate) async fn run(&self, job: StageJob) -> StageCompletion {
         let started = Instant::now();
-        let page = job.input.page();
+        let pages = if job.pages.is_empty() {
+            vec![job.input.page()]
+        } else {
+            job.pages.clone()
+        };
         let model = self.stages.model(job.stage).to_owned();
         let outcome = self.run_with_recovery(&job, &model).await;
         StageCompletion {
-            page,
+            pages,
             stage: job.stage,
             model,
             elapsed: started.elapsed(),
@@ -101,7 +105,11 @@ impl StageRunner {
         progress::emit(
             job.progress.as_ref(),
             Progress::Loading {
-                page: job.input.page(),
+                pages: if job.pages.is_empty() {
+                    vec![job.input.page()]
+                } else {
+                    job.pages.clone()
+                },
                 stage: job.stage,
                 model: model.to_owned(),
             },
@@ -169,6 +177,7 @@ pub(crate) struct StageJob {
     input: StageInput,
     stop: StopToken,
     progress: Option<ProgressSink>,
+    pages: Vec<EntityId>,
 }
 
 impl StageJob {
@@ -183,7 +192,13 @@ impl StageJob {
             input,
             stop,
             progress,
+            pages: Vec::new(),
         }
+    }
+
+    pub(crate) fn with_pages(mut self, pages: Vec<EntityId>) -> Self {
+        self.pages = pages;
+        self
     }
 }
 
@@ -194,7 +209,7 @@ pub(crate) enum StageOutcome {
 }
 
 pub(crate) struct StageCompletion {
-    pub(crate) page: EntityId,
+    pub(crate) pages: Vec<EntityId>,
     pub(crate) stage: Stage,
     pub(crate) model: String,
     pub(crate) elapsed: Duration,

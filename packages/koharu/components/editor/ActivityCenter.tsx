@@ -104,16 +104,27 @@ function DownloadGroup({ downloads }: { downloads: DownloadState[] }) {
 function JobItem({ job }: { job: Job }) {
   const { t } = useTranslation()
   const dismiss = useKoharuStore((state) => state.dismissJob)
-  // The pipeline reports which page it is on; the rail has already loaded the
-  // labels, so this resolves from cache rather than fetching.
-  const pages = usePages(job.page !== null).data
+  // The pipeline reports the active page batch; the rail has already loaded
+  // the labels, so page numbers resolve from cache rather than fetching.
+  const pages = usePages(job.pages.length > 0).data
   // Numbered by position in the rail, so the row says where in the run this
   // is as well as which file: a scan filename alone rarely tells you.
-  const pageIndex = job.page ? (pages?.findIndex((page) => page.id === job.page) ?? -1) : -1
-  const page = pageIndex >= 0 ? pages?.[pageIndex] : undefined
-  const pageLabel = page
-    ? t('activity.pageLabel', { number: pageIndex + 1, label: page.label })
-    : undefined
+  const pageIndexes = job.pages
+    .map((id) => pages?.findIndex((page) => page.id === id) ?? -1)
+    .filter((index) => index >= 0)
+  const pageLabel =
+    pageIndexes.length > 1
+      ? pageIndexes.every(
+          (index, position) => position === 0 || index === pageIndexes[position - 1] + 1,
+        )
+        ? t('activity.pageRange', { start: pageIndexes[0] + 1, end: pageIndexes.at(-1)! + 1 })
+        : pageIndexes.map((index) => index + 1).join(', ')
+      : pageIndexes.length === 1
+        ? t('activity.pageLabel', {
+            number: pageIndexes[0] + 1,
+            label: pages?.[pageIndexes[0]]?.label,
+          })
+        : undefined
   if (job.state === 'failed') {
     return (
       <Failure

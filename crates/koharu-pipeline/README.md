@@ -163,9 +163,9 @@ is no shared `common.rs`, stage registry indexing, or catch-all processor enum.
 Progress events carry both page and stage:
 
 - `Started { pages, stages }`
-- `Loading { page, stage, model }`
+- `Loading { pages, stage, model }`
 - `Running { page, stage, model }`
-- `Finished { page, stage, model, elapsed }`
+- `Finished { pages, stage, model, elapsed }`
 - `Skipped { page, stage }`
 
 `Finished` is emitted after the stage output commits. Progress callbacks are

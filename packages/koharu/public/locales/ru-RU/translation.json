@@ -13,6 +13,7 @@
     "downloadingFiles_other": "Скачивание файлов: {{count}}",
     "modelDownload": "Скачивание модели",
     "pageLabel": "Страница {{number}}: {{label}}",
+    "pageRange": "Страницы {{start}}–{{end}}",
     "processing": "Обработка",
     "processingFailed": "Ошибка обработки.",
     "stop": "Остановить",

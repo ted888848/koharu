@@ -44,7 +44,7 @@ pub struct Job {
     pub completed: usize,
     #[specta(type = f64)]
     pub total: usize,
-    pub page: Option<koharu_scene::EntityId>,
+    pub pages: Vec<koharu_scene::EntityId>,
     pub stage: Option<koharu_pipeline::Stage>,
     pub model: Option<String>,
     pub error: Option<String>,
@@ -103,7 +103,7 @@ pub(crate) async fn process(
         state: JobState::Running,
         completed: 0,
         total: 0,
-        page: None,
+        pages: Vec::new(),
         stage: None,
         model: None,
         error: None,
@@ -135,9 +135,13 @@ pub(crate) async fn process(
                     );
                     let mut progress = progress.lock();
                     *progress = (0, pages.len().saturating_mul(stages.len()));
-                    Some((0, progress.1, None, None, None))
+                    Some((0, progress.1, Vec::new(), None, None))
                 }
-                Progress::Loading { page, stage, model } => {
+                Progress::Loading {
+                    pages,
+                    stage,
+                    model,
+                } => {
                     tracing::info!(
                         target: "koharu_metrics",
                         metric = "stage_loading",
@@ -145,10 +149,10 @@ pub(crate) async fn process(
                         model,
                     );
                     let progress = progress.lock();
-                    Some((progress.0, progress.1, Some(page), Some(stage), Some(model)))
+                    Some((progress.0, progress.1, pages, Some(stage), Some(model)))
                 }
                 Progress::Finished {
-                    page,
+                    pages,
                     stage,
                     model,
                     elapsed,
@@ -163,8 +167,8 @@ pub(crate) async fn process(
                         );
                     }
                     let mut progress = progress.lock();
-                    progress.0 = progress.0.saturating_add(1).min(progress.1);
-                    Some((progress.0, progress.1, Some(page), Some(stage), Some(model)))
+                    progress.0 = progress.0.saturating_add(pages.len()).min(progress.1);
+                    Some((progress.0, progress.1, pages, Some(stage), Some(model)))
                 }
                 Progress::Skipped { page, stage } => {
                     tracing::info!(
@@ -174,7 +178,7 @@ pub(crate) async fn process(
                     );
                     let mut progress = progress.lock();
                     progress.0 = progress.0.saturating_add(1).min(progress.1);
-                    Some((progress.0, progress.1, Some(page), Some(stage), None))
+                    Some((progress.0, progress.1, vec![page], Some(stage), None))
                 }
                 Progress::Running { stage, model, .. } => {
                     tracing::info!(
@@ -186,14 +190,14 @@ pub(crate) async fn process(
                     None
                 }
             };
-            if let Some((completed, total, page, stage, model)) = update {
+            if let Some((completed, total, pages, stage, model)) = update {
                 let job = {
                     let processing = progress_handle.state::<Processing>();
                     let mut jobs = processing.jobs.lock();
                     jobs.get_mut(&id).map(|job| {
                         job.completed = completed;
                         job.total = total;
-                        job.page = page;
+                        job.pages = pages;
                         job.stage = stage;
                         job.model = model;
                         job.clone()

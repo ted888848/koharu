@@ -4,6 +4,8 @@ use koharu_scene::EntityId;
 
 use crate::Stage;
 
+const TRANSLATION_BATCH_SIZE: usize = 5;
+
 #[derive(Clone, Copy, Eq, PartialEq)]
 enum WorkState {
     Pending,
@@ -77,7 +79,11 @@ impl Scheduler {
                 .map(|(index, page)| (page.page, index))
                 .collect(),
             pages,
-            page_window: stages.len().max(1),
+            page_window: if stages.contains(&Stage::Translation) {
+                stages.len() + TRANSLATION_BATCH_SIZE
+            } else {
+                stages.len().max(1)
+            },
             active_pages: 0,
             head: 0,
             total,
@@ -120,6 +126,63 @@ impl Scheduler {
             return Some((page.page, work.stage));
         }
         None
+    }
+
+    pub(crate) fn start_translation_batch(
+        &mut self,
+        busy_stages: &BTreeSet<Stage>,
+    ) -> Option<Vec<EntityId>> {
+        if busy_stages.contains(&Stage::Translation) {
+            return None;
+        }
+        let upstream_pending = busy_stages.contains(&Stage::Ocr)
+            || self.pages.iter().any(|page| {
+                page.stages
+                    .iter()
+                    .any(|work| work.stage == Stage::Ocr && work.state != WorkState::Finished)
+            });
+        let mut batch = Vec::with_capacity(TRANSLATION_BATCH_SIZE);
+        for index in self.head..self.pages.len() {
+            if batch.len() == TRANSLATION_BATCH_SIZE {
+                break;
+            }
+            let page = &mut self.pages[index];
+            let Some(stage_index) = page.stages.iter().position(|work| {
+                work.stage == Stage::Translation && work.state == WorkState::Pending
+            }) else {
+                continue;
+            };
+            if !page.ready(stage_index)
+                || (!page.started() && self.active_pages >= self.page_window)
+            {
+                continue;
+            }
+            if !page.started() {
+                self.active_pages += 1;
+            }
+            page.stages[stage_index].state = WorkState::Running;
+            batch.push(page.page);
+        }
+        if batch.len() < TRANSLATION_BATCH_SIZE && upstream_pending {
+            for page in &batch {
+                if let Some(&index) = self.page_index.get(page) {
+                    if let Some(work) = self.pages[index]
+                        .stages
+                        .iter_mut()
+                        .find(|work| work.stage == Stage::Translation)
+                    {
+                        work.state = WorkState::Pending;
+                    }
+                }
+            }
+            self.active_pages = self
+                .pages
+                .iter()
+                .filter(|page| page.started() && !page.finished())
+                .count();
+            return None;
+        }
+        (!batch.is_empty()).then_some(batch)
     }
 
     pub(crate) fn complete_stage(&mut self, page: EntityId, stage: Stage) -> bool {

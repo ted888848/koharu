@@ -269,7 +269,7 @@ export type Job = {
 	state: JobState,
 	completed: number,
 	total: number,
-	page: EntityId | null,
+	pages: EntityId[],
 	stage: Stage | null,
 	model: string | null,
 	error: string | null,

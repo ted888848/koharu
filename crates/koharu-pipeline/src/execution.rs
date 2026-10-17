@@ -17,7 +17,7 @@ use crate::{
     scheduler::Scheduler,
     scope::NormalizedScope,
     stage_runner::{StageCompletion, StageJob, StageOutcome, StageRunner},
-    stages::StageInput,
+    stages::{StageInput, TranslationPage},
 };
 
 pub(crate) struct Execution<'a> {
@@ -125,29 +125,57 @@ impl<'a> Execution<'a> {
         if self.stopped() || self.failure.is_some() {
             return None;
         }
-        let (page, stage) = self.scheduler.start_next(&self.busy_stages)?;
+        let batch = self.scheduler.start_translation_batch(&self.busy_stages);
+        let mut blocked_busy = self.busy_stages.clone();
+        if batch.is_none() {
+            blocked_busy.insert(Stage::Translation);
+        }
+        let (page, stage) = if let Some(pages) = batch.as_ref() {
+            (*pages.first()?, Stage::Translation)
+        } else {
+            self.scheduler.start_next(&blocked_busy)?
+        };
         self.busy_stages.insert(stage);
         let images = self
             .images
             .entry(page)
             .or_insert_with(|| Arc::new(ImageCache::default()))
             .clone();
-        Some(StageJob::new(
-            stage,
-            StageInput::new(
-                self.scene.clone(),
-                page,
-                self.scope.entities(),
-                self.scope.region(page),
-                images,
-                self.inpainting_mask
-                    .as_ref()
-                    .filter(|mask| stage == Stage::Inpainting && mask.page == page)
-                    .cloned(),
-            ),
-            self.stop.clone(),
-            self.progress.clone(),
-        ))
+        let mut input = StageInput::new(
+            self.scene.clone(),
+            page,
+            self.scope.entities(),
+            self.scope.region(page),
+            images,
+            self.inpainting_mask
+                .as_ref()
+                .filter(|mask| stage == Stage::Inpainting && mask.page == page)
+                .cloned(),
+        );
+        let pages = batch.unwrap_or_else(|| vec![page]);
+        if stage == Stage::Translation && pages.len() > 1 {
+            let rest = pages
+                .iter()
+                .copied()
+                .skip(1)
+                .map(|page| {
+                    let images = self
+                        .images
+                        .entry(page)
+                        .or_insert_with(|| Arc::new(ImageCache::default()))
+                        .clone();
+                    TranslationPage {
+                        page,
+                        region: self.scope.region(page),
+                        images,
+                    }
+                })
+                .collect();
+            input = input.with_translation_pages(rest);
+        }
+        Some(
+            StageJob::new(stage, input, self.stop.clone(), self.progress.clone()).with_pages(pages),
+        )
     }
 
     async fn apply_completion(
@@ -155,7 +183,7 @@ impl<'a> Execution<'a> {
         completion: StageCompletion,
     ) -> std::result::Result<(), PipelineError> {
         let StageCompletion {
-            page,
+            pages,
             stage,
             model,
             elapsed,
@@ -164,18 +192,23 @@ impl<'a> Execution<'a> {
         match outcome? {
             StageOutcome::Stopped => {}
             StageOutcome::Skipped => {
-                self.mark_complete(page, stage);
-                progress::emit(self.progress.as_ref(), Progress::Skipped { page, stage });
+                for page in pages {
+                    self.mark_complete(page, stage);
+                    progress::emit(self.progress.as_ref(), Progress::Skipped { page, stage });
+                }
             }
             StageOutcome::Patch(patch) => {
+                let page = pages[0];
                 if !self.commit_patch(page, stage, patch).await? {
                     return Ok(());
                 }
-                self.mark_complete(page, stage);
+                for page in &pages {
+                    self.mark_complete(*page, stage);
+                }
                 progress::emit(
                     self.progress.as_ref(),
                     Progress::Finished {
-                        page,
+                        pages,
                         stage,
                         model,
                         elapsed,

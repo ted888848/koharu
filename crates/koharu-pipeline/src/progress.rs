@@ -10,7 +10,7 @@ pub enum Progress {
         stages: Vec<Stage>,
     },
     Loading {
-        page: EntityId,
+        pages: Vec<EntityId>,
         stage: Stage,
         model: String,
     },
@@ -20,7 +20,7 @@ pub enum Progress {
         model: String,
     },
     Finished {
-        page: EntityId,
+        pages: Vec<EntityId>,
         stage: Stage,
         model: String,
         elapsed: std::time::Duration,

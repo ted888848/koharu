@@ -13,6 +13,7 @@
     "downloadingFiles_other": "Downloading {{count}} files",
     "modelDownload": "Model download",
     "pageLabel": "Page {{number}}: {{label}}",
+    "pageRange": "Pages {{start}}–{{end}}",
     "processing": "Processing",
     "processingFailed": "Processing failed.",
     "stop": "Stop",

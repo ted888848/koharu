@@ -36,17 +36,26 @@ impl StageProcessor for Processor {
 
     async fn process(&self, input: StageInput) -> Result<koharu_scene::Patch> {
         let mut targets = Vec::new();
-        if let Some(group) = input.scene.page(input.page)?.text_group()? {
-            for layer in group.text_layers()? {
-                if !input.contains_entity(layer.id())? {
-                    continue;
-                }
-                let content = layer.content()?;
-                let Some(source) = content.source()? else {
-                    continue;
-                };
-                if !source.text.value.trim().is_empty() {
-                    targets.push((content.id(), source.text.value));
+        let mut pages = vec![(input.page, input.region, input.images.clone())];
+        pages.extend(
+            input
+                .translation_pages()
+                .iter()
+                .map(|page| (page.page, page.region, page.images.clone())),
+        );
+        for (page, region, _) in &pages {
+            if let Some(group) = input.scene.page(*page)?.text_group()? {
+                for layer in group.text_layers()? {
+                    if !input.contains_on_page(*page, *region, layer.id())? {
+                        continue;
+                    }
+                    let content = layer.content()?;
+                    let Some(source) = content.source()? else {
+                        continue;
+                    };
+                    if !source.text.value.trim().is_empty() {
+                        targets.push((content.id(), source.text.value));
+                    }
                 }
             }
         }
@@ -57,10 +66,15 @@ impl StageProcessor for Processor {
         if let Some(instructions) = self.config.instructions.as_deref() {
             request = request.with_instructions(instructions);
         }
-        if Translator::supports_vision(&self.config.model, &self.config.generation)
-            && let Some(image) = input.images.get(&input.scene, input.page, "source").await?
+        if pages.len() == 1
+            && Translator::supports_vision(&self.config.model, &self.config.generation)
         {
-            request = request.with_image(image);
+            for (page, _, cache) in &pages {
+                if let Some(image) = cache.get(&input.scene, *page, "source").await? {
+                    request = request.with_image(image);
+                    break;
+                }
+            }
         }
         let (provider, translated) = self
             .translator

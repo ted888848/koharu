@@ -13,6 +13,7 @@
     "downloadingFiles_other": "{{count}} dosya indiriliyor",
     "modelDownload": "Model indirme",
     "pageLabel": "Sayfa {{number}}: {{label}}",
+    "pageRange": "Sayfalar {{start}}–{{end}}",
     "processing": "İşleniyor",
     "processingFailed": "İşleme başarısız oldu.",
     "stop": "Durdur",
