@@ -1802,7 +1802,7 @@ describe('greenfield editor', () => {
           id: 'job',
           completed: 1,
           total: 4,
-          page: 'page',
+          pages: ['page'],
           stage: 'ocr',
           model: 'manga-ocr',
           error: null,
