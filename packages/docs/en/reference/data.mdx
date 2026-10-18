@@ -15,7 +15,7 @@ icon: 'database'
 
 ## Project data
 
-Projects live at `Documents/Koharu/<project-name>.khrproj/`. Each contains alternating durable state files, a lock file while the project is open, and content-addressed blobs for source images, generated artwork, and authored raster edits. Unreferenced blobs are not removed automatically, so a heavily edited project can grow over time.
+Projects live at `Documents/Koharu/<project-name>.khrproj/`. Each contains alternating durable state files, a lock file while the project is open, and content-addressed blobs for source images, generated artwork, and authored raster edits. When a project opens, Koharu removes blobs no longer referenced by either saved state or the current session. Undo history keeps its blobs available until the project closes.
 
 <Warning>
   Do not change internal project files while the project is open. Deletion from the project browser

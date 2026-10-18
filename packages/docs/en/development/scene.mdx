@@ -50,7 +50,7 @@ Storage is domain-agnostic. It saves an opaque complete scene payload into alter
 
 Opening selects the newest valid state and can fall back to the other slot if the newer one is corrupt. Blob reads may use read-only memory mapping without exposing that detail to scene consumers.
 
-Storage and scene expose a garbage-collection routine that preserves blobs referenced by both valid disk states and live scene scopes, including undo history. The application does not call it yet, so unreferenced blobs remain on disk.
+Storage and scene expose a garbage-collection routine that preserves blobs referenced by both valid disk states and live scene scopes, including undo history. The application runs it when opening a project, after the previous session's undo history has been discarded.
 
 ## Keep application ownership separate
 

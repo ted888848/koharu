@@ -199,6 +199,9 @@ impl Session {
         let state = State::from_checkpoint(stored.document_id(), stored.revision(), checkpoint)?;
         state.validate()?;
         let current = Snapshot::new(Arc::new(state), stored)?;
+        if let Err(error) = storage.collect_garbage().await {
+            tracing::warn!(%error, "could not collect unreferenced project blobs");
+        }
         Ok(Self {
             storage,
             current,

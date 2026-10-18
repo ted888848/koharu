@@ -15,7 +15,7 @@ icon: 'database'
 
 ## 项目数据
 
-项目位于 `Documents/Koharu/<project-name>.khrproj/`，包含交替写入的持久状态文件、项目打开期间的锁文件，以及保存源图、生成画面和手动栅格编辑的内容寻址 blob。未被引用的 blob 不会自动移除，因此大量编辑过的项目可能随时间增大。
+项目位于 `Documents/Koharu/<project-name>.khrproj/`，包含交替写入的持久状态文件、项目打开期间的锁文件，以及保存源图、生成画面和手动栅格编辑的内容寻址 blob。打开项目时，Koharu 会移除两个已保存状态和当前会话都不再引用的 blob。撤销历史会保留其需要的 blob，直到项目关闭。
 
 <Warning>项目打开时不要修改内部文件。在项目列表中删除会永久移除整个目录。</Warning>
 
