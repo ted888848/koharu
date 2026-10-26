@@ -6,7 +6,11 @@ use koharu_scene::Snapshot;
 use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 use specta::Type;
-use tauri::{AppHandle, Manager as _, State, ipc::Channel};
+use tauri::{
+    AppHandle, Manager as _, State,
+    ipc::Channel,
+    window::{ProgressBarState, ProgressBarStatus},
+};
 use tauri_runtime_cef::CefRuntime;
 use uuid::Uuid;
 
@@ -71,6 +75,29 @@ pub(crate) struct JobChannel {
     pub(crate) channel: Mutex<Option<Channel<Job>>>,
 }
 
+pub(crate) fn update_taskbar_progress(handle: &AppHandle<CefRuntime>, job: Option<&Job>) {
+    let Some(window) = handle.get_webview_window("main") else {
+        return;
+    };
+    let state = match job {
+        Some(job) if job.total == 0 => ProgressBarState {
+            status: Some(ProgressBarStatus::Indeterminate),
+            progress: None,
+        },
+        Some(job) => ProgressBarState {
+            status: Some(ProgressBarStatus::Normal),
+            progress: Some(((job.completed as u128 * 100) / job.total as u128).min(100) as u64),
+        },
+        _ => ProgressBarState {
+            status: Some(ProgressBarStatus::None),
+            progress: None,
+        },
+    };
+    if let Err(error) = window.set_progress_bar(state) {
+        tracing::debug!(%error, "failed to update taskbar processing progress");
+    }
+}
+
 #[tauri::command]
 #[specta::specta]
 #[allow(clippy::too_many_arguments)]
@@ -110,6 +137,7 @@ pub(crate) async fn process(
     };
     processing.jobs.lock().insert(id, job.clone());
     job_channel.channel.publish(job);
+    update_taskbar_progress(&handle, processing.jobs.lock().get(&id));
 
     let pipeline = handle.state::<koharu_pipeline::Pipeline>().inner().clone();
     let task_handle = handle.clone();
@@ -204,6 +232,7 @@ pub(crate) async fn process(
                     })
                 };
                 if let Some(job) = job {
+                    update_taskbar_progress(&progress_handle, Some(&job));
                     progress_handle.state::<JobChannel>().channel.publish(job);
                 }
             }
@@ -276,6 +305,7 @@ pub(crate) async fn process(
                 job
             });
         if let Some(job) = job {
+            update_taskbar_progress(&task_handle, None);
             task_handle.state::<JobChannel>().channel.publish(job);
         }
     }));
