@@ -88,6 +88,9 @@ impl StageInput {
 #[async_trait]
 trait StageProcessor: Send + Sync {
     fn model(&self) -> &'static str;
+    fn uses_accelerator(&self) -> bool {
+        true
+    }
     fn skip(&self, _input: &StageInput) -> Result<bool> {
         Ok(false)
     }
@@ -128,6 +131,14 @@ impl Stages {
 
     pub(crate) fn model(&self, stage: Stage) -> &'static str {
         self.processor(stage).model()
+    }
+
+    pub(crate) fn uses_accelerator(&self, stage: Stage) -> bool {
+        self.processor(stage).uses_accelerator()
+    }
+
+    pub(crate) fn cloud_translation(&self) -> bool {
+        self.translation.is_cloud()
     }
 
     pub(crate) fn skip(&self, stage: Stage, input: &StageInput) -> Result<bool> {

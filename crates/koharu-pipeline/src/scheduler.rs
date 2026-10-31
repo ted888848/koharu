@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use koharu_scene::EntityId;
 
@@ -36,8 +36,10 @@ impl PageWork {
             .all(|work| work.state == WorkState::Finished)
     }
 
-    fn ready(&self, index: usize) -> bool {
-        let Some(prerequisite) = prerequisite(self.stages[index].stage) else {
+    fn ready(&self, index: usize, translation_before_inpainting: bool) -> bool {
+        let Some(prerequisite) =
+            prerequisite(self.stages[index].stage, translation_before_inpainting)
+        else {
             return true;
         };
         self.stages
@@ -54,6 +56,9 @@ pub(crate) struct Scheduler {
     active_pages: usize,
     head: usize,
     total: usize,
+    translation_before_inpainting: bool,
+    priority_inpainting: VecDeque<EntityId>,
+    priority_inpainting_active: BTreeSet<EntityId>,
 }
 
 impl Scheduler {
@@ -87,7 +92,18 @@ impl Scheduler {
             active_pages: 0,
             head: 0,
             total,
+            translation_before_inpainting: false,
+            priority_inpainting: VecDeque::new(),
+            priority_inpainting_active: BTreeSet::new(),
         }
+    }
+
+    pub(crate) fn wait_for_translation_before_inpainting(&mut self) {
+        self.translation_before_inpainting = self.pages.iter().any(|page| {
+            page.stages
+                .iter()
+                .any(|work| work.stage == Stage::Translation)
+        });
     }
 
     pub(crate) fn total(&self) -> usize {
@@ -111,7 +127,8 @@ impl Scheduler {
                     .find_map(|(index, work)| {
                         (work.state == WorkState::Pending
                             && !busy_stages.contains(&work.stage)
-                            && self.pages[page_index].ready(index))
+                            && self.pages[page_index]
+                                .ready(index, self.translation_before_inpainting))
                         .then_some(index)
                     });
             let Some(stage_index) = stage_index else {
@@ -152,7 +169,7 @@ impl Scheduler {
             }) else {
                 continue;
             };
-            if !page.ready(stage_index)
+            if !page.ready(stage_index, self.translation_before_inpainting)
                 || (!page.started() && self.active_pages >= self.page_window)
             {
                 continue;
@@ -185,7 +202,58 @@ impl Scheduler {
         (!batch.is_empty()).then_some(batch)
     }
 
+    pub(crate) fn prioritize_inpainting(&mut self, page: EntityId) {
+        if self.pages.iter().any(|work| {
+            work.page == page
+                && work
+                    .stages
+                    .iter()
+                    .any(|stage| stage.stage == Stage::Inpainting)
+        }) && !self.priority_inpainting.contains(&page)
+        {
+            self.priority_inpainting.push_back(page);
+        }
+    }
+
+    pub(crate) fn start_priority_inpainting(
+        &mut self,
+        busy_stages: &BTreeSet<Stage>,
+    ) -> Option<(EntityId, Stage)> {
+        let queue_index = self.priority_inpainting.iter().position(|page| {
+            let Some(&page_index) = self.page_index.get(page) else {
+                return false;
+            };
+            let work = &self.pages[page_index];
+            let Some(stage_index) = work
+                .stages
+                .iter()
+                .position(|stage| stage.stage == Stage::Inpainting)
+            else {
+                return false;
+            };
+            work.stages[stage_index].state == WorkState::Pending
+                && !busy_stages.contains(&Stage::Inpainting)
+                && work.ready(stage_index, self.translation_before_inpainting)
+        })?;
+        let page = self.priority_inpainting.remove(queue_index)?;
+        let page_index = *self.page_index.get(&page)?;
+        let work = self.pages[page_index]
+            .stages
+            .iter_mut()
+            .find(|work| work.stage == Stage::Inpainting)?;
+        work.state = WorkState::Running;
+        self.priority_inpainting_active.insert(page);
+        Some((page, Stage::Inpainting))
+    }
+
+    pub(crate) fn has_priority_inpainting(&self) -> bool {
+        !self.priority_inpainting.is_empty() || !self.priority_inpainting_active.is_empty()
+    }
+
     pub(crate) fn complete_stage(&mut self, page: EntityId, stage: Stage) -> bool {
+        if stage == Stage::Inpainting {
+            self.priority_inpainting_active.remove(&page);
+        }
         let Some(&page_index) = self.page_index.get(&page) else {
             return false;
         };
@@ -205,10 +273,12 @@ impl Scheduler {
     }
 }
 
-const fn prerequisite(stage: Stage) -> Option<Stage> {
+const fn prerequisite(stage: Stage, translation_before_inpainting: bool) -> Option<Stage> {
     match stage {
         Stage::Detection => None,
-        Stage::Ocr | Stage::Inpainting => Some(Stage::Detection),
+        Stage::Ocr => Some(Stage::Detection),
+        Stage::Inpainting if translation_before_inpainting => Some(Stage::Translation),
+        Stage::Inpainting => Some(Stage::Detection),
         Stage::Translation => Some(Stage::Ocr),
     }
 }

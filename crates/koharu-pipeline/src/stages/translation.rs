@@ -18,12 +18,20 @@ impl Processor {
     pub(super) fn new(config: TranslationConfig, translator: Translator) -> Self {
         Self { config, translator }
     }
+
+    pub(super) fn is_cloud(&self) -> bool {
+        self.config.model.provider != koharu_translator::Provider::Local
+    }
 }
 
 #[async_trait]
 impl StageProcessor for Processor {
     fn model(&self) -> &'static str {
         Translator::model(&self.config.model)
+    }
+
+    fn uses_accelerator(&self) -> bool {
+        self.config.model.provider == koharu_translator::Provider::Local
     }
 
     fn unload(&self) -> bool {

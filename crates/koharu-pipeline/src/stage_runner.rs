@@ -51,6 +51,10 @@ impl StageRunner {
         }
     }
 
+    pub(crate) fn is_cloud_translation(&self) -> bool {
+        self.stages.cloud_translation()
+    }
+
     async fn run_with_recovery(
         &self,
         job: &StageJob,
@@ -72,7 +76,11 @@ impl StageRunner {
         if skip {
             return Ok(StageOutcome::Skipped);
         }
-        let permit = self.accelerator.acquire().await;
+        let permit = if self.stages.uses_accelerator(job.stage) {
+            Some(self.accelerator.acquire().await)
+        } else {
+            None
+        };
         if job.stop.stopped() {
             return Ok(StageOutcome::Stopped);
         }
@@ -87,7 +95,11 @@ impl StageRunner {
         tracing::warn!(stage = %job.stage, page = %job.input.page(), error = %failure.error, "retrying stage after memory pressure");
         let _metric =
             tracing::info_span!(target: "koharu_metrics", "stage_retry", stage = %job.stage, model);
-        let _permit = self.accelerator.recover(job.stage, &self.stages).await;
+        let _permit = if self.stages.uses_accelerator(job.stage) {
+            Some(self.accelerator.recover(job.stage, &self.stages).await)
+        } else {
+            None
+        };
         if job.stop.stopped() {
             return Ok(StageOutcome::Stopped);
         }

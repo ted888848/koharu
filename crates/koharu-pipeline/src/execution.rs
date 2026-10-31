@@ -1,5 +1,5 @@
 use std::{
-    collections::{BTreeMap, BTreeSet},
+    collections::{BTreeMap, BTreeSet, VecDeque},
     sync::Arc,
     time::Instant,
 };
@@ -55,6 +55,10 @@ impl<'a> Execution<'a> {
         let scope = NormalizedScope::new(&snapshot, &request.scope, &stages)
             .map_err(|error| PipelineError::new(ErrorKind::InvalidInput, None, error))?;
         let pages = scope.pages().to_vec();
+        let mut scheduler = Scheduler::new(&pages, &stages);
+        if runner.is_cloud_translation() {
+            scheduler.wait_for_translation_before_inpainting();
+        }
         if let Some(mask) = request.inpainting_mask.as_ref()
             && (!pages.contains(&mask.page) || !stages.contains(&Stage::Inpainting))
         {
@@ -79,7 +83,7 @@ impl<'a> Execution<'a> {
             stop: request.stop,
             progress: request.progress,
             scope,
-            scheduler: Scheduler::new(&pages, &stages),
+            scheduler,
             scene: snapshot,
             images: BTreeMap::new(),
             busy_stages: BTreeSet::new(),
@@ -101,6 +105,7 @@ impl<'a> Execution<'a> {
 
         let runner = self.runner.clone();
         let mut running = FuturesUnordered::new();
+        let mut deferred = VecDeque::new();
         loop {
             while let Some(job) = self.take_ready_job() {
                 running.push(runner.run(job));
@@ -113,8 +118,22 @@ impl<'a> Execution<'a> {
             if self.stopped() || self.failure.is_some() {
                 continue;
             }
+            if self.scheduler.has_priority_inpainting() && completion.stage != Stage::Inpainting {
+                deferred.push_back(completion);
+                continue;
+            }
             if let Err(error) = self.apply_completion(completion).await {
                 self.failure = Some(error);
+            }
+            if !self.scheduler.has_priority_inpainting() {
+                while let Some(completion) = deferred.pop_front() {
+                    if self.stopped() || self.failure.is_some() {
+                        break;
+                    }
+                    if let Err(error) = self.apply_completion(completion).await {
+                        self.failure = Some(error);
+                    }
+                }
             }
         }
 
@@ -125,12 +144,22 @@ impl<'a> Execution<'a> {
         if self.stopped() || self.failure.is_some() {
             return None;
         }
-        let batch = self.scheduler.start_translation_batch(&self.busy_stages);
+        let prioritized = self.scheduler.start_priority_inpainting(&self.busy_stages);
+        if prioritized.is_none() && self.scheduler.has_priority_inpainting() {
+            return None;
+        }
+        let batch = if prioritized.is_none() {
+            self.scheduler.start_translation_batch(&self.busy_stages)
+        } else {
+            None
+        };
         let mut blocked_busy = self.busy_stages.clone();
         if batch.is_none() {
             blocked_busy.insert(Stage::Translation);
         }
-        let (page, stage) = if let Some(pages) = batch.as_ref() {
+        let (page, stage) = if let Some(prioritized) = prioritized {
+            prioritized
+        } else if let Some(pages) = batch.as_ref() {
             (*pages.first()?, Stage::Translation)
         } else {
             self.scheduler.start_next(&blocked_busy)?
@@ -204,6 +233,9 @@ impl<'a> Execution<'a> {
                 }
                 for page in &pages {
                     self.mark_complete(*page, stage);
+                    if stage == Stage::Translation && self.runner.is_cloud_translation() {
+                        self.scheduler.prioritize_inpainting(*page);
+                    }
                 }
                 progress::emit(
                     self.progress.as_ref(),
