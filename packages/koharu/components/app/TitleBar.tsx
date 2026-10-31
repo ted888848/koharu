@@ -36,6 +36,7 @@ import {
   MenubarTrigger as UiMenubarTrigger,
 } from '@koharu/ui/components/menubar'
 import { cn } from '@koharu/ui/lib/utils'
+import { Button } from '@koharu/ui/components/button';
 
 export function TitleBar() {
   const { t } = useTranslation()
@@ -129,6 +130,10 @@ export function TitleBar() {
                   ))}
                 </MenubarSubContent>
               </MenubarSub>
+              <MenubarItem disabled={!project || importing} onClick={() => importPages('folder')}>
+                <FolderOpen />
+                匯入資料夾
+              </MenubarItem>
               <MenubarSeparator />
               <MenubarItem disabled={!project} onClick={closeProject}>
                 {t('menu.closeProject')}
@@ -260,6 +265,20 @@ export function TitleBar() {
               <MenubarItem onClick={() => setAboutOpen(true)}>{t('menu.about')}</MenubarItem>
             </MenubarContent>
           </MenubarMenu>
+          <Button
+            disabled={!project || importing} onClick={() => importPages('folder')} size="xs">
+            載入資料夾
+          </Button>
+          <Button
+            disabled={!project || pages.length === 0} size="xs"
+            onClick={() => run({ scope: 'project' })}>
+            處理專案
+          </Button>
+          <Button
+            disabled={selectedPages.length === 0}
+            onClick={() => run({ scope: 'pages', value: selectedPages })} size="xs">
+            處理選取
+          </Button>
         </Menubar>
 
         <div className='min-w-0 flex-1' />
