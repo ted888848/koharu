@@ -207,9 +207,9 @@ function DownloadItem({ download }: { download: DownloadState }) {
 function Failure({ message, onDismiss }: { message: string; onDismiss: () => void }) {
   const { t } = useTranslation()
   return (
-    <div className='grid grid-cols-[1rem_minmax(0,1fr)_2.25rem_1.5rem] items-start gap-x-2.5 border-b p-3 text-[11px] last:border-b-0'>
+    <div className='grid max-h-[40vh] grid-cols-[1rem_minmax(0,1fr)_2.25rem_1.5rem] items-start gap-x-2.5 overflow-y-auto border-b p-3 text-[11px] last:border-b-0'>
       <CircleAlert className='mt-0.5 size-3.5 justify-self-center text-destructive' />
-      <span className='col-start-2 col-end-4 min-w-0 text-destructive'>{message}</span>
+      <span className='col-start-2 col-end-4 min-w-0 break-words text-destructive'>{message}</span>
       <Button
         size='icon-xs'
         variant='ghost'
